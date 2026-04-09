@@ -60,5 +60,25 @@ app.delete('/api/items/:id', async (req, res) => {
   }
 });
 
+
+// 5. UPDATE: Kisi item ko badalne ke liye (id ke through)
+app.put('/api/items/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const updatedData = req.body;
+    
+    // findByIdAndUpdate database mein item dhoond kar use naye data se badal dega
+    const updatedItem = await Item.findByIdAndUpdate(id, updatedData, { new: true });
+    
+    if (!updatedItem) {
+      return res.status(404).json({ message: "Item nahi mila!" });
+    }
+
+    res.status(200).json(updatedItem);
+  } catch (err) {
+    res.status(400).json({ error: "Update error: " + err.message });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API Server live on port ${PORT}`));
