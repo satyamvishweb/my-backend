@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -9,9 +10,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- Database Connection ---
-const MONGO_URI = "mongodb+srv://satyam:satyam9560@cluster0.m8x1iuz.mongodb.net/myRealProject?retryWrites=true&w=majority";
-const JWT_SECRET = "satyam_secret_key_123";
+// --- Database Connection (Using Environment Variables) ---
+const MONGO_URI = process.env.MONGO_URI; 
+const JWT_SECRET = process.env.JWT_SECRET;
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
@@ -31,8 +32,8 @@ const User = mongoose.model('User', UserSchema);
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'YOUR_GMAIL@gmail.com', // 👈 Apna asli Gmail dalo
-    pass: 'YOUR_APP_PASSWORD'     // 👈 16-digit App Password dalo
+    user: process.env.EMAIL_USER, 
+    pass: process.env.EMAIL_PASS
   }
 });
 
@@ -44,10 +45,13 @@ app.post('/api/auth/send-otp', async (req, res) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
   const mailOptions = {
-    from: '"Satyam Official" <YOUR_GMAIL@gmail.com>',
+    from: `"Satyam Official" <${process.env.EMAIL_USER}>`, // Variable use kiya taaki hardcoded na rahe
     to: email,
     subject: 'Verification Code',
-    html: `<h1>OTP: ${otp}</h1>`
+    html: `<div style="font-family: Arial; padding: 20px;">
+             <h2>Verification Code</h2>
+             <p>Hi ${name}, tera OTP ye hai: <b>${otp}</b></p>
+           </div>`
   };
 
   try {
@@ -55,8 +59,8 @@ app.post('/api/auth/send-otp', async (req, res) => {
     console.log("✅ Email sent to:", email);
     res.status(200).json({ success: true, otp: otp });
   } catch (error) {
-    console.error("❌ Nodemailer Error:", error); // 👈 Ise check karna terminal mein
-    res.status(500).json({ success: false, error: error.message });
+    console.error("❌ Nodemailer Error:", error);
+    res.status(500).json({ success: false, error: "Email service issue" });
   }
 });
 
@@ -85,7 +89,6 @@ app.post('/api/auth/login', async (req, res) => {
     
     if (!user) return res.status(404).json({ error: "User not found!" });
 
-    // ✅ FIXED: bcrypt.compare use kiya hai
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: "Invalid Credentials!" });
 
