@@ -30,10 +30,15 @@ const User = mongoose.model('User', UserSchema);
 
 // --- Nodemailer Setup ---
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: "smtp.gmail.com",
+  port: 587, // 465 ki jagah 587 try karo
+  secure: false, // 587 ke liye secure false rahega
   auth: {
-    user: process.env.EMAIL_USER, 
-    pass: process.env.EMAIL_PASS
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false // Ye line connection timeout ko rokne mein madad karti hai
   }
 });
 
