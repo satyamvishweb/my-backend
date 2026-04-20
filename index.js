@@ -10,7 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- Database Connection (Using Environment Variables) ---
+// --- Database Connection ---
 const MONGO_URI = process.env.MONGO_URI; 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -31,14 +31,14 @@ const User = mongoose.model('User', UserSchema);
 // --- Nodemailer Setup ---
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 587, // 465 ki jagah 587 try karo
-  secure: false, // 587 ke liye secure false rahega
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false // Ye line connection timeout ko rokne mein madad karti hai
+    rejectUnauthorized: false
   }
 });
 
@@ -50,7 +50,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
   const mailOptions = {
-    from: `"Satyam Official" <${process.env.EMAIL_USER}>`, // Variable use kiya taaki hardcoded na rahe
+    from: `"Satyam Official" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: 'Verification Code',
     html: `<div style="font-family: Arial; padding: 20px;">
@@ -61,10 +61,8 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent to:", email);
     res.status(200).json({ success: true, otp: otp });
   } catch (error) {
-    console.error("❌ Nodemailer Error:", error);
     res.status(500).json({ success: false, error: "Email service issue" });
   }
 });
@@ -102,6 +100,41 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({ success: true, token, user: { name: user.name, email: user.email } });
   } catch (error) {
     res.status(500).json({ error: "Login failed" });
+  }
+});
+
+// 4. GET USER DETAILS (New API)
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    // Header se token uthao
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.status(401).json({ error: "No token, authorization denied!" });
+
+    // Token verify karo
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // Database se user ka data nikalo (password ko chhod kar)
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) return res.status(404).json({ error: "User not found!" });
+
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error("Auth Error:", error.message);
+    res.status(401).json({ error: "Token is not valid" });
+  }
+});
+
+// 5. LOGOUT ROUTE
+app.post('/api/auth/logout', (req, res) => {
+  try {
+    res.status(200).json({ 
+      success: true, 
+      message: "Backend: User logged out successfully" 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Logout failed" });
   }
 });
 
